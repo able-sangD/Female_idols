@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>닮은꼴 연예인 찾기_여자</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Arial', sans-serif;
+            background-color: #2adee4;
+        }
+
+        #container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #webcam-container {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        #label-container {
+            display: inline-block;
+            text-align: left;
+            margin-top: 20px;
+        }
+
+        .result {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        div {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        #result-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #label-container {
+    display: inline-block;
+    text-align: left;
+    margin-top: 20px;
+    overflow-y: auto; /* 수직 스크롤을 활성화하기 위해 이 줄을 추가합니다. */
+    max-height: 200px; /* 레이블 컨테이너의 최대 높이를 설정합니다. */
+}
+
+.result {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    white-space: nowrap; /* 텍스트가 줄 바꿈되지 않도록 설정합니다. */
+    overflow: hidden; /* 컨테이너를 벗어나는 부분을 숨깁니다. */
+    text-overflow: ellipsis; /* 넘치는 텍스트에 대해 생략 부호 (...)를 표시합니다. */
+}
+#logo-container {
+            position: absolute;
+            top: 10px; /* 로고의 위쪽 여백 조정 */
+            right: 10px; /* 로고의 오른쪽 여백 조정 */
+        }
+
+        #logo {
+            width: 100px; /* 로고의 가로 크기 조정 */
+            height: auto; /* 세로 크기 자동 조정 */
+        }
+    </style>
+</head>
+
+<body>
+    <div id="logo-container">
+        <img id="logo" src="에이블 로고.png" alt="에이블 로고">
+    </div>
+    <div id="container">
+        <div>닮은꼴 연예인 찾기_여자아이돌</div>
+        <button type="button" onclick="init()">시작</button>
+        <div id="result-container">
+            <div id="webcam-container"></div>
+            <div id="label-container"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+    <script type="text/javascript">
+        const URL = "https://teachablemachine.withgoogle.com/models/TCsevVCvY/";
+
+        let model, webcam, labelContainer, maxPredictions;
+
+        async function init() {
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+
+            model = await tmImage.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
+
+            const flip = true;
+            webcam = new tmImage.Webcam(200, 200, flip);
+            await webcam.setup();
+            await webcam.play();
+            window.requestAnimationFrame(loop);
+
+            document.getElementById("webcam-container").appendChild(webcam.canvas);
+            labelContainer = document.getElementById("label-container");
+            for (let i = 0; i < maxPredictions; i++) {
+                labelContainer.appendChild(document.createElement("div"));
+            }
+        }
+
+        async function loop() {
+            webcam.update();
+            await predict();
+            window.requestAnimationFrame(loop);
+        }
+
+        async function predict() {
+            const prediction = await model.predict(webcam.canvas);
+            let maxProbability = 0;
+            let maxClassIndex = 0;
+
+            for (let i = 0; i < maxPredictions; i++) {
+                const classPrediction =
+                    prediction[i].className + ": " + prediction[i].probability.toFixed(2);
+                labelContainer.childNodes[i].innerHTML = classPrediction;
+
+                // Find the class with the highest probability
+                if (prediction[i].probability > maxProbability) {
+                    maxProbability = prediction[i].probability;
+                    maxClassIndex = i;
+                }
+            }
+
+            // Display the result of the class with the highest probability
+            const resultElement = document.createElement("div");
+            resultElement.className = "result";
+            resultElement.innerHTML = `당신의 닮은꼴 : ${prediction[maxClassIndex].className} (${(maxProbability * 100).toFixed(2)}%)`;
+
+            // Remove previous result elements
+            const existingResultElements = document.getElementsByClassName("result");
+            while (existingResultElements.length > 0) {
+                existingResultElements[0].parentNode.removeChild(existingResultElements[0]);
+            }
+
+            // Append the new result element to the top of the result container
+            document.getElementById("result-container").insertBefore(resultElement, document.getElementById("result-container").firstChild);
+        }
+    </script>
+</body>
+
+</html>
